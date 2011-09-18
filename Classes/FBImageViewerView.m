@@ -66,6 +66,7 @@
 @synthesize contentOffsetIndex = contentOffsetIndex_;
 @synthesize innerScrollViews = innerScrollViews_;
 @synthesize delegate = delegate_;
+@synthesize dataSource = dataSource_;
 @synthesize showcaseModeEnabled = showcaseModeEnabled_;
 @synthesize showcaseMargin = showcaseMargin_;
 @synthesize viewSpacing = viewSpacing_;
@@ -75,62 +76,41 @@
 @synthesize slideShowDuration = slideShowDuration_;
 @synthesize timer = timer_;
 @synthesize transitionInnerScrollView = transitionInnerScrollView_;
-
+@synthesize scaleAspectFillEnabled = scaleAspectFillEnabled_;
 
 #pragma mark -
 #pragma mark private utilities
-- (NSInteger)numberOfImages
+- (NSInteger)_numberOfImages
 {
-	NSInteger numberOfViews = [self.delegate numberOfImagesInImageViewerView:self];
+	NSInteger numberOfViews = [self.dataSource numberOfImagesInImageViewerView:self];
 	if (numberOfViews < 0) {
 		numberOfViews = 0;
 	}
 	return numberOfViews;
 }
 
-- (void)resetZoomScrollView:(FBImageViewerInnerScrollView*)innerScrollView
+- (void)_resetZoomScrollView:(FBImageViewerInnerScrollView*)innerScrollView
 {
 	innerScrollView.zoomScale = 1.0;
 	innerScrollView.contentOffset = CGPointZero;
+    innerScrollView.scaleAspectFillEnabled = self.scaleAspectFillEnabled;
 }
 
-- (void)setImageAtIndex:(NSInteger)index toScrollView:(FBImageViewerInnerScrollView*)innerScrollView
+- (void)_setImageAtIndex:(NSInteger)index toScrollView:(FBImageViewerInnerScrollView*)innerScrollView
 {
-	if (index < 0 || [self numberOfImages] <= index) {
+	if (index < 0 || [self _numberOfImages] <= index) {
 		innerScrollView.imageView.image = nil;
 		return;
 	}
 	
 	innerScrollView.imageView.image =
-        [self.delegate imageViewerView:self imageAtIndex:index];
+        [self.dataSource imageViewerView:self imageAtIndex:index];
 	
-	[self resetZoomScrollView:innerScrollView];
+	[self _resetZoomScrollView:innerScrollView];
 }
 
 
-- (void)reloadData
-{
-	NSInteger numberOfViews = [self numberOfImages];
-	if (self.currentImageIndex >= numberOfViews) {
-		if (numberOfViews == 0) {
-			self.currentImageIndex = 0;
-		} else {
-			self.currentImageIndex = numberOfViews-1;
-		}
-		self.contentOffsetIndex = self.currentImageIndex;
-	}
-	
-	for (int index=0; index < kMaxOfScrollView; index++) {
-		[self setImageAtIndex:self.currentImageIndex+index-kLengthFromCetner
-				 toScrollView:[self.innerScrollViews objectAtIndex:index]];
-	}
-	
-	self.pageControl.numberOfPages = numberOfViews;
-	self.pageControl.currentPage = self.currentImageIndex;
-}
-
-
-- (void)setupClips
+- (void)_setupClips
 {
 	self.scrollView.clipsToBounds = NO;
 
@@ -143,7 +123,7 @@
 	 */
 }
 
-- (void)setupSpacingAndMargin
+- (void)_setupSpacingAndMargin
 {
 	if (self.showcaseModeEnabled) {
 		spacing_ = self.viewSpacing;
@@ -154,19 +134,19 @@
 		margin_ = CGSizeZero;
 	}
 }
-- (void)setupSpacingAndMarginAndClips
+- (void)_setupSpacingAndMarginAndClips
 {
-	[self setupSpacingAndMargin];
-	[self setupClips];
+	[self _setupSpacingAndMargin];
+	[self _setupClips];
 }
 
 
-- (CGRect)baseFrame
+- (CGRect)_baseFrame
 {
 	return CGRectInset(self.bounds, margin_.width, margin_.height);
 }
 
-- (CGSize)unitSize
+- (CGSize)_unitSize
 {
 	CGSize size;
 	if (self.showcaseModeEnabled) {
@@ -178,18 +158,18 @@
 	return size;
 }	
 
-- (void)relayoutBaseScrollView
+- (void)_relayoutBaseScrollView
 {
-	CGRect scrollViewFrame = [self baseFrame];
+	CGRect scrollViewFrame = [self _baseFrame];
 	scrollViewFrame.origin.x -= spacing_.width/2.0;
 	scrollViewFrame.size.width += spacing_.width;
 	self.scrollView.frame =scrollViewFrame;	
 }
 
-- (void)relayoutInnerScrollViews
+- (void)_relayoutInnerScrollViews
 {
 	CGRect innerScrollViewFrame = CGRectZero;
-	innerScrollViewFrame.size = [self baseFrame].size;
+	innerScrollViewFrame.size = [self _baseFrame].size;
 	innerScrollViewFrame.origin.x = (self.contentOffsetIndex-kLengthFromCetner) * innerScrollViewFrame.size.width;
 	if (self.showcaseModeEnabled) {
 		innerScrollViewFrame.origin.x -= spacing_.width;
@@ -210,35 +190,57 @@
 	
 }
 
-- (void)relayoutViewsAnimated:(BOOL)animated
+- (void)_relayoutViewsAnimated:(BOOL)animated
 {
 	passDidScroll_ = YES;
 
 	if (animated) {
 		[UIView beginAnimations:nil context:nil];
 	}
-	[self setupSpacingAndMargin];
-	[self relayoutBaseScrollView];
-	[self relayoutInnerScrollViews];
+	[self _setupSpacingAndMargin];
+	[self _relayoutBaseScrollView];
+	[self _relayoutInnerScrollViews];
 	if (animated) {
 		[UIView commitAnimations];
 	}
 }
+
+#pragma mark -
+#pragma mark -
+- (void)reloadData
+{
+	NSInteger numberOfViews = [self _numberOfImages];
+	if (self.currentImageIndex >= numberOfViews) {
+		if (numberOfViews == 0) {
+			self.currentImageIndex = 0;
+		} else {
+			self.currentImageIndex = numberOfViews-1;
+		}
+		self.contentOffsetIndex = self.currentImageIndex;
+	}
+	
+	for (int index=0; index < kMaxOfScrollView; index++) {
+		[self _setImageAtIndex:self.currentImageIndex+index-kLengthFromCetner
+                  toScrollView:[self.innerScrollViews objectAtIndex:index]];
+	}
+	
+	self.pageControl.numberOfPages = numberOfViews;
+	self.pageControl.currentPage = self.currentImageIndex;
+}
+
 
 
 #pragma mark -
 #pragma mark setup and layout subviews
 - (void)setupSubViews
 {	
-	NSLog(@"setupSubviews");
-
 	// initialize vars
 	self.viewSpacing = CGSizeMake(
 								  DEFAULT_SPACING_WIDTH, DEFAULT_SPACING_HEIGHT);
 	self.showcaseMargin = CGSizeMake(
 									 (int)(self.bounds.size.width * DEFAULT_MARGIN_WIDTH_RATE),
 									 DEFAULT_MARGIN_HEIGHT);
-	[self setupSpacingAndMarginAndClips];
+	[self _setupSpacingAndMarginAndClips];
 	
 	// setup self view
 	//-------------------------
@@ -255,7 +257,7 @@
 	
 	// setup base scroll view
 	//-------------------------	
-	self.scrollView = [[[UIScrollView alloc] initWithFrame:[self baseFrame]] autorelease];
+	self.scrollView = [[[UIScrollView alloc] initWithFrame:[self _baseFrame]] autorelease];
 	
 	self.scrollView.delegate = self;
 	self.scrollView.pagingEnabled = YES;
@@ -265,7 +267,7 @@
 	self.scrollView.autoresizingMask =
 		UIViewAutoresizingFlexibleWidth |
 		UIViewAutoresizingFlexibleHeight;
-	[self relayoutBaseScrollView];
+	[self _relayoutBaseScrollView];
 
 	[self addSubview:self.scrollView];
 	
@@ -282,7 +284,7 @@
 			[[FBImageViewerInnerScrollView alloc] initWithFrame:innerScrollViewFrame];
 		innerScrollView.clipsToBounds = YES;
 		innerScrollView.backgroundColor = self.backgroundColor;
-		innerScrollView.eventDelegate = self;
+		innerScrollView.innerScrollViewDelegate = self;
 		
 		// bind & store views
 		[self.scrollView addSubview:innerScrollView];
@@ -291,7 +293,7 @@
 		// release all
 		[innerScrollView release];
 	}
-	[self relayoutInnerScrollViews];
+	[self _relayoutInnerScrollViews];
 	
 	// setup temporary view for slideshow transition
 	self.transitionInnerScrollView =
@@ -318,7 +320,7 @@
 	[self addSubview:self.pageControl];
 }	
 
-- (void)layoutSubviewsWithSizeChecking:(BOOL)checking animated:(BOOL)animated
+- (void)_layoutSubviewsWithSizeChecking:(BOOL)checking animated:(BOOL)animated
 {
 	if (!didSetup_) {
 		// initialization for only first time
@@ -340,9 +342,7 @@
 		return;
 	}
 	
-	NSLog(@"layoutSubviews");
-
-	[self setupSpacingAndMarginAndClips];
+	[self _setupSpacingAndMarginAndClips];
 		
 	previousScrollSize_ = newSize;
 	CGSize newSizeWithSpace = newSize;
@@ -417,7 +417,7 @@
 
 	passDidScroll_ = YES;
 	self.scrollView.contentSize = CGSizeMake(
-		[self numberOfImages]*newSizeWithSpace.width,
+		[self _numberOfImages]*newSizeWithSpace.width,
 		newSize.height);
 
 	passDidScroll_ = YES;
@@ -440,7 +440,7 @@
 
 - (void)layoutSubviews
 {
-	[self layoutSubviewsWithSizeChecking:YES animated:NO];
+	[self _layoutSubviewsWithSizeChecking:YES animated:NO];
 }
 
 
@@ -448,11 +448,11 @@
 #pragma mark Initialization and deallocation
 - (void)setup
 {
-	pageControlEnabled_ = YES;
-	showcaseModeEnabled_ = YES;
+	pageControlEnabled_ = NO;
+	showcaseModeEnabled_ = NO;
 	
 	isRunningSlideShow_ = NO;
-	slideShowDuration_ = DEFAULT_SLIDESHOW_DURATION;
+	slideShowDuration_ = DEFAULT_SLIDESHOW_DURATION;    
 }
 
 - (id)initWithCoder:(NSCoder *)aDecoder
@@ -485,7 +485,7 @@
 #pragma mark -
 #pragma mark Control Scroll
 
--(void)setupPreviousImage
+-(void)_setupPreviousImage
 {
 	FBImageViewerInnerScrollView* rightView =
 		[self.innerScrollViews objectAtIndex:kMaxOfScrollView-1];
@@ -497,11 +497,11 @@
 
 	[self.innerScrollViews removeObjectAtIndex:kMaxOfScrollView-1];
 	[self.innerScrollViews insertObject:rightView atIndex:0];
-	[self setImageAtIndex:self.currentImageIndex-kLengthFromCetner toScrollView:rightView];
+	[self _setImageAtIndex:self.currentImageIndex-kLengthFromCetner toScrollView:rightView];
 
 }
 
--(void)setupNextImage
+-(void)_setupNextImage
 {
 	FBImageViewerInnerScrollView* rightView =
 		[self.innerScrollViews objectAtIndex:kMaxOfScrollView-1];
@@ -513,7 +513,7 @@
 	
 	[self.innerScrollViews removeObjectAtIndex:0];
 	[self.innerScrollViews addObject:leftView];
-	[self setImageAtIndex:self.currentImageIndex+kLengthFromCetner toScrollView:leftView];
+	[self _setImageAtIndex:self.currentImageIndex+kLengthFromCetner toScrollView:leftView];
 
 }
 
@@ -534,17 +534,17 @@
 
 	FBImageViewerInnerScrollView* currentScrollView = 
 	[self.innerScrollViews objectAtIndex:kIndexOfCurrentScrollView];
-	[self resetZoomScrollView:currentScrollView];	
+	[self _resetZoomScrollView:currentScrollView];	
 	
 	[UIView beginAnimations:nil context:nil];
 	self.scrollView.contentOffset = CGPointMake(
-			self.contentOffsetIndex*[self unitSize].width, 0);
+			self.contentOffsetIndex*[self _unitSize].width, 0);
 	[UIView commitAnimations];
 	
 	if (previous) {
-		[self setupPreviousImage];
+		[self _setupPreviousImage];
 	} else {
-		[self setupNextImage];
+		[self _setupNextImage];
 	}
 }
 
@@ -572,7 +572,7 @@
 
 - (void)nextSlideShow:(NSTimer*)timer
 {
-	NSInteger numberOfViews = [self numberOfImages];
+	NSInteger numberOfViews = [self _numberOfImages];
 	if (numberOfViews <= (self.currentImageIndex+1)) {
 		[self stopSlideShow];
 		return;
@@ -580,7 +580,7 @@
 	}
 
 	// [1] setup transitionView
-	[self setImageAtIndex:self.currentImageIndex
+	[self _setImageAtIndex:self.currentImageIndex
 			 toScrollView:self.transitionInnerScrollView];
 	self.currentImageIndex = self.currentImageIndex + 1;
 	
@@ -613,7 +613,7 @@
 	self.transitionInnerScrollView = nextInnerScrollView;
 
 	// [3] setup next
-	[self setupNextImage];
+	[self _setupNextImage];
 }
 
 - (void)startSlideShow
@@ -640,12 +640,12 @@
 #pragma mark Delegate methods for CAAnimation
 - (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag
 {
-	NSLog(@"animationDidStop:finished:");
+//	NSLog(@"animationDidStop:finished:");
 }
 
 
 #pragma mark -
-#pragma mark FTGalleryInnerScrollViewDelegate
+#pragma mark FBImageViewerInnerScrollViewDelegate
 
 - (void)didTouched:(FBImageViewerInnerScrollView*)innerScrollView
 {
@@ -654,7 +654,18 @@
 
 - (void)didDoubleTouched:(FBImageViewerInnerScrollView*)innerScrollView
 {
-	self.showcaseModeEnabled = !self.showcaseModeEnabled;
+	FBImageViewerInnerScrollView* currentScrollView = 
+        [self.innerScrollViews objectAtIndex:kIndexOfCurrentScrollView];
+    
+    if (self.scaleAspectFillEnabled) {
+        currentScrollView.scaleAspectFillEnabled = !currentScrollView.scaleAspectFillEnabled;
+    } else {
+        if (currentScrollView.zoomScale == 1.0) {
+            [currentScrollView setZoomScale:1.5 animated:YES];
+        } else {
+            [currentScrollView setZoomScale:1.0 animated:YES];        
+        }
+    }
 }
 
 - (BOOL)canZoom
@@ -680,14 +691,10 @@
 	CGFloat position = scrollView.contentOffset.x / scrollView.bounds.size.width;
 	CGFloat delta = position - (CGFloat)self.currentImageIndex;
 	
-	NSLog(@"");
-	NSLog(@"----------------------");
-
-	NSLog(@"[1] %d", self.contentOffsetIndex);
 	if (fabs(delta) >= 1.0f) {
 		FBImageViewerInnerScrollView* currentScrollView =
 			[self.innerScrollViews objectAtIndex:kIndexOfCurrentScrollView];
-		[self resetZoomScrollView:currentScrollView];
+		[self _resetZoomScrollView:currentScrollView];
 		
 		//		NSLog(@"%f (%d=>%d)", delta, self.currentImageIndex, index);
 
@@ -696,18 +703,17 @@
 			self.currentImageIndex = self.currentImageIndex+1;
 			self.contentOffsetIndex = self.contentOffsetIndex+1;
 			self.pageControl.currentPage = self.currentImageIndex;
-			[self setupNextImage];
+			[self _setupNextImage];
 			
 		} else {
 			// the current page moved to left
 			self.currentImageIndex = self.currentImageIndex-1;
 			self.contentOffsetIndex = self.contentOffsetIndex-1;
 			self.pageControl.currentPage = self.currentImageIndex;
-			[self setupPreviousImage];
+			[self _setupPreviousImage];
 		}
 		
 	}
-	NSLog(@"[2] %d", self.contentOffsetIndex);
 	
 }
 
@@ -736,7 +742,7 @@
 	
 	showcaseModeEnabled_ = enabled;
 
-	[self relayoutViewsAnimated:animated];
+	[self _relayoutViewsAnimated:animated];
 }
 
 
@@ -749,9 +755,9 @@
 
 #pragma mark -
 #pragma mark public methods
-- (void)setDelegate:(id <FBImageViewerViewDelegate>)delegate
+- (void)setDataSource:(id <FBImageViewerViewDataSource>)dataSource
 {
-	delegate_ = delegate;
+    dataSource_ = dataSource;
 	[self reloadData];
 }
 
@@ -763,30 +769,30 @@
 
 - (void)setCurrentPage:(NSInteger)page animated:(BOOL)animated
 {
-	if (page == self.currentImageIndex) {
-		return;
-	}
-
-	NSInteger numberOfViews = [self numberOfImages];
+	NSInteger numberOfViews = [self _numberOfImages];
 
 	if (page < 0) {
 		page = 0;
 	} else if (page >= numberOfViews) {
 		page = numberOfViews - 1;
 	}
-	
+
+    if (page == self.currentImageIndex) {
+		return;
+	}
+
 	self.currentImageIndex = page;
 	self.contentOffsetIndex = page;
 	self.pageControl.currentPage = page;
 	
 	for (int index=0; index < kMaxOfScrollView; index++) {
-		[self setImageAtIndex:self.currentImageIndex+index-kLengthFromCetner
+		[self _setImageAtIndex:self.currentImageIndex+index-kLengthFromCetner
 				 toScrollView:[self.innerScrollViews objectAtIndex:index]];
 	}
 	
 
-	[self relayoutViewsAnimated:NO];
-	[self layoutSubviewsWithSizeChecking:NO animated:animated];
+	[self _relayoutViewsAnimated:NO];
+	[self _layoutSubviewsWithSizeChecking:NO animated:animated];
 
 }
 
@@ -800,16 +806,16 @@
 	return currentImageIndex_;
 }
 
-- (void)movePage_:(BOOL)animated
+- (void)_movePage:(BOOL)animated
 {
 	passDidScroll_ = YES;
 	scrollingAnimation_ = YES;
 	[self.scrollView setContentOffset:CGPointMake(
-		self.contentOffsetIndex*[self unitSize].width, 0)
+		self.contentOffsetIndex*[self _unitSize].width, 0)
 							 animated:animated];
 }
 
-- (void)movePreviousPageAnimated:(BOOL)animated
+- (void)moveToPreviousPageAnimated:(BOOL)animated
 {
 	if (scrollingAnimation_ || self.currentIndex <= 0) {
 		// do nothing
@@ -819,18 +825,13 @@
 	self.currentImageIndex--;
 	self.contentOffsetIndex--;
 	self.pageControl.currentPage--;
-	[self setupPreviousImage];
-	[self movePage_:animated];
+	[self _setupPreviousImage];
+	[self _movePage:animated];
 }
 
-- (void)movePreviousPage
+- (void)moveToNextPageAnimated:(BOOL)animated
 {
-	[self movePreviousPageAnimated:YES];
-}
-
-- (void)moveNextPageAnimated:(BOOL)animated
-{
-	if (scrollingAnimation_ || self.currentIndex >= [self numberOfImages]-1) {
+	if (scrollingAnimation_ || self.currentIndex >= [self _numberOfImages]-1) {
 		// do nothing
 		return;
 	}
@@ -838,24 +839,29 @@
 	self.currentImageIndex++;
 	self.contentOffsetIndex++;
 	self.pageControl.currentPage++;
-	[self setupNextImage];
-	[self movePage_:animated];
+	[self _setupNextImage];
+	[self _movePage:animated];
 }
 
-- (void)moveNextPage
+- (void)moveToFirstPageAnimated:(BOOL)animated
 {
-	[self moveNextPageAnimated:YES];
+    [self setCurrentPage:0 animated:animated];
 }
 
-- (void)removeCurrentPage1
+- (void)moveToLastPageAnimated:(BOOL)animated
 {
-	[self reloadData];
-	[self layoutSubviewsWithSizeChecking:NO animated:NO];
+    [self setCurrentPage:[self _numberOfImages]-1 animated:animated];    
 }
+
+//- (void)removeCurrentPage1
+//{
+//	[self reloadData];
+//	[self _layoutSubviewsWithSizeChecking:NO animated:NO];
+//}
 
 - (void)removeCurrentPage
 {
-	NSInteger numberOfImages = [self numberOfImages];
+	NSInteger numberOfImages = [self _numberOfImages];
 	CGFloat directionFactor = 1.0;
 
 	NSInteger transitionIndex = self.currentImageIndex;
@@ -868,7 +874,7 @@
 	}
 	
 	// [1] setup transitionView
-	[self setImageAtIndex:transitionIndex
+	[self _setImageAtIndex:transitionIndex
 			 toScrollView:self.transitionInnerScrollView];
 	
 	FBImageViewerInnerScrollView* currentInnerScrollView =
@@ -885,7 +891,7 @@
 		// [2-1] setup init position
 		FBImageViewerInnerScrollView* nextInnerScrollView =
 			[self.innerScrollViews objectAtIndex:kIndexOfCurrentScrollView+1];
-		CGFloat dw = 2 * [self unitSize].width * directionFactor;
+		CGFloat dw = 2 * [self _unitSize].width * directionFactor;
 		CGRect frame;
 
 		frame = currentInnerScrollView.frame;
@@ -923,7 +929,7 @@
 	}
 	
 	// [3] re-layout subviews
-	[self layoutSubviewsWithSizeChecking:NO animated:NO];
+	[self _layoutSubviewsWithSizeChecking:NO animated:NO];
 }
 
 @end

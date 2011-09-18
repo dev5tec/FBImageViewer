@@ -50,7 +50,7 @@ enum {
 
 
 #pragma mark -
-#pragma mark FBImageViewerViewDelegate
+#pragma mark FBImageViewerViewDataSource
 -(NSInteger)numberOfImagesInImageViewerView:(FBImageViewerView*)imageViewerView
 {
 	return [self.imageFiles count];
@@ -61,6 +61,8 @@ enum {
 	return [UIImage imageWithContentsOfFile:[self.imageFiles objectAtIndex:index]];
 }
 
+#pragma mark -
+#pragma mark FBImageViewerViewDelegate
 -(void)imageViewerDidStopSlideShow:(FBImageViewerView*)imageViewerView
 {
 	NSLog(@"didStopSlideShow:");
@@ -100,12 +102,12 @@ enum {
 
 - (IBAction)movePrevious:(id)sender
 {
-	[self.galleryView movePreviousPage];
+	[self.galleryView moveToPreviousPageAnimated:YES];
 }
 
 - (IBAction)moveNext:(id)sender
 {
-	[self.galleryView moveNextPage];
+	[self.galleryView moveToNextPageAnimated:YES];
 }
 
 @end

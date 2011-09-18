@@ -42,13 +42,15 @@
 @interface FBImageViewerInnerScrollView : UIScrollView <UIScrollViewDelegate> {
 
 	UIImageView* imageView_;
-	NSObject <FBImageViewerInnerScrollViewDelegate> *eventDelegate_;
+	NSObject <FBImageViewerInnerScrollViewDelegate> *innerScrollViewDelegate_;
 }
 
 @property (nonatomic, retain) UIImageView* imageView;
-@property (nonatomic, assign) NSObject <FBImageViewerInnerScrollViewDelegate> *eventDelegate;
+@property (nonatomic, assign) NSObject <FBImageViewerInnerScrollViewDelegate> *innerScrollViewDelegate;
 
 + (CGRect)zoomRectForScrollView:(UIScrollView *)scrollView
 					  withScale:(float)scale withCenter:(CGPoint)center;
+
+@property (nonatomic, assign) BOOL scaleAspectFillEnabled;
 
 @end

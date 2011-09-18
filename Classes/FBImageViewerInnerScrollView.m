@@ -34,7 +34,8 @@
 @implementation FBImageViewerInnerScrollView
 
 @synthesize imageView = imageView_;
-@synthesize eventDelegate = eventDelegate_;
+@synthesize innerScrollViewDelegate = innerScrollViewDelegate_;
+@synthesize scaleAspectFillEnabled = scaleAspectFillEnabled_;
 
 -(id)initWithFrame:(CGRect)frame
 {
@@ -81,16 +82,16 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[self.eventDelegate didTouched:self];
+	[self.innerScrollViewDelegate didTouched:self];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[self.eventDelegate didTouched:self];
+	[self.innerScrollViewDelegate didTouched:self];
 	
 	UITouch* touch = [touches anyObject];
 	if ([touch tapCount] == 2) {
-		[self.eventDelegate didDoubleTouched:self];
+		[self.innerScrollViewDelegate didDoubleTouched:self];
 
 		/*
 		CGRect zoomRect;
@@ -114,12 +115,27 @@
 
 
 #pragma mark -
+#pragma mark Properties
+
+- (void)setScaleAspectFillEnabled:(BOOL)scaleAspectFillEnabled
+{
+    scaleAspectFillEnabled_ = scaleAspectFillEnabled;
+    
+    if (scaleAspectFillEnabled) {
+        self.imageView.contentMode = UIViewContentModeScaleAspectFill;
+    } else {
+        self.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    }
+}
+
+
+#pragma mark -
 #pragma mark UIScrollViewDelegate
 -(UIView*)viewForZoomingInScrollView:(UIScrollView *)scrollView
 {
 	UIView* zoomView = nil;
 	
-	if ([self.eventDelegate canZoom]) {
+	if ([self.innerScrollViewDelegate canZoom]) {
 		zoomView = [self.subviews objectAtIndex:0];
 	}
 	return zoomView;
@@ -128,7 +144,7 @@
 
 - (void)scrollViewWillBeginZooming:(UIScrollView *)scrollView withView:(UIView *)view
 {
-	[self.eventDelegate didTouched:self];
+	[self.innerScrollViewDelegate didTouched:self];
 }
 
 

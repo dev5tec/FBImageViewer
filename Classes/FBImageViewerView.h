@@ -26,13 +26,19 @@
 #import "FBImageViewerInnerScrollView.h"
 
 @class FBImageViewerView;
-@protocol FBImageViewerViewDelegate
+@protocol FBImageViewerViewDataSource
 
 -(NSInteger)numberOfImagesInImageViewerView:(FBImageViewerView*)imageViewerView;
 -(UIImage*)imageViewerView:(FBImageViewerView*)imageViewerView imageAtIndex:(NSUInteger)index;
+
+@end
+
+@protocol FBImageViewerViewDelegate
+
 -(void)imageViewerDidStopSlideShow:(FBImageViewerView*)imageViewerView;
 
 @end
+
 
 @class FBImageViewerInnerScrollView;
 @interface FBImageViewerView : UIView <UIScrollViewDelegate, FBImageViewerInnerScrollViewDelegate> {
@@ -47,6 +53,7 @@
 	CGSize previousScrollSize_;
 	
 	
+	id <FBImageViewerViewDataSource> dataSource_;
 	id <FBImageViewerViewDelegate> delegate_;
 	
 
@@ -73,24 +80,28 @@
 	BOOL passDidScroll_;
 	BOOL scrollingAnimation_;
 	
+    BOOL scaleAspectFillEnabled_;
 }
 
 // public properties
 @property (nonatomic, assign) IBOutlet id <FBImageViewerViewDelegate> delegate;
+@property (nonatomic, assign) IBOutlet id <FBImageViewerViewDataSource> dataSource;
 @property (nonatomic, assign) BOOL showcaseModeEnabled;
 @property (nonatomic, assign) BOOL pageControlEnabled;
 @property (nonatomic, assign) BOOL isRunningSlideShow;
 @property (nonatomic, assign) NSTimeInterval slideShowDuration;
 @property (nonatomic, assign) NSInteger currentIndex;	// start with 0
+@property (nonatomic, assign) BOOL scaleAspectFillEnabled;
 
 // public methods
+- (void)reloadData;
 - (void)startSlideShow;
 - (void)stopSlideShow;
 - (void)setCurrentPage:(NSInteger)page animated:(BOOL)animated;
-- (void)movePreviousPage;
-- (void)moveNextPage;
-- (void)movePreviousPageAnimated:(BOOL)animated;
-- (void)moveNextPageAnimated:(BOOL)animated;
+- (void)moveToPreviousPageAnimated:(BOOL)animated;
+- (void)moveToNextPageAnimated:(BOOL)animated;
+- (void)moveToFirstPageAnimated:(BOOL)animated;
+- (void)moveToLastPageAnimated:(BOOL)animated;
 - (void)removeCurrentPage;
 
 @end
