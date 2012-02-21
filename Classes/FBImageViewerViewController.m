@@ -96,7 +96,7 @@ enum {
 {
 	if ([imageFiles_ count] > 0) {
 		[imageFiles_ removeObjectAtIndex:self.galleryView.currentIndex];
-		[self.galleryView removeCurrentPage];
+		[self.galleryView removeCurrentIndexAimated:YES];
 	}
 }
 
