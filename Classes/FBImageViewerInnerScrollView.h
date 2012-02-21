@@ -51,6 +51,4 @@
 + (CGRect)zoomRectForScrollView:(UIScrollView *)scrollView
 					  withScale:(float)scale withCenter:(CGPoint)center;
 
-@property (nonatomic, assign) BOOL scaleAspectFillEnabled;
-
 @end

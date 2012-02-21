@@ -35,7 +35,6 @@
 
 @synthesize imageView = imageView_;
 @synthesize innerScrollViewDelegate = innerScrollViewDelegate_;
-@synthesize scaleAspectFillEnabled = scaleAspectFillEnabled_;
 
 -(id)initWithFrame:(CGRect)frame
 {
@@ -55,13 +54,8 @@
 		self.imageView =
 			[[[UIImageView alloc] initWithFrame:self.bounds] autorelease];
 		self.imageView.autoresizingMask =
-			UIViewAutoresizingFlexibleLeftMargin  |
-			UIViewAutoresizingFlexibleWidth       |
-			UIViewAutoresizingFlexibleRightMargin |
-			UIViewAutoresizingFlexibleTopMargin   |
-			UIViewAutoresizingFlexibleHeight      |
-			UIViewAutoresizingFlexibleBottomMargin;		
-		self.imageView.contentMode = UIViewContentModeScaleAspectFit;
+			UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+		self.imageView.contentMode = UIViewContentModeScaleAspectFill;
 		[self addSubview:self.imageView];		
 	}
 	return self;
@@ -117,16 +111,6 @@
 #pragma mark -
 #pragma mark Properties
 
-- (void)setScaleAspectFillEnabled:(BOOL)scaleAspectFillEnabled
-{
-    scaleAspectFillEnabled_ = scaleAspectFillEnabled;
-    
-    if (scaleAspectFillEnabled) {
-        self.imageView.contentMode = UIViewContentModeScaleAspectFill;
-    } else {
-        self.imageView.contentMode = UIViewContentModeScaleAspectFit;
-    }
-}
 
 
 #pragma mark -

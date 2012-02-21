@@ -26,13 +26,13 @@
 
 #import "FBImageViewerView.h"
 
-#define DEFAULT_SPACING_WIDTH	40
-#define DEFAULT_SPACING_HEIGHT	0
-#define DEFAULT_MARGIN_HEIGHT	20
-#define DEFAULT_MARGIN_WIDTH_RATE	0.2
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_SPACING_WIDTH	40
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_SPACING_HEIGHT	0
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_HEIGHT	50
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_WIDTH_RATE	0.2
 
-#define DEFAULT_SLIDESHOW_DURATION 3
-#define DEFAULT_TRANSITION_DURATION	0.75
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_SLIDESHOW_DURATION 3
+#define FB_IMAGE_VIEWER_VIEW_DEFAULT_TRANSITION_DURATION	0.75
 
 #define kMaxOfScrollView			5
 #define kLengthFromCetner			((kMaxOfScrollView-1)/2)
@@ -70,13 +70,13 @@
 @synthesize showcaseModeEnabled = showcaseModeEnabled_;
 @synthesize showcaseMargin = showcaseMargin_;
 @synthesize viewSpacing = viewSpacing_;
-@synthesize pageControlEnabled = pageControlEnabled_;
+@synthesize pageControlHidden = pageControlHidden_;
+@synthesize pageControlPosition = pageControlPosition_;
 @synthesize pageControl = pageControl_;
 @synthesize isRunningSlideShow = isRunningSlideShow_;
 @synthesize slideShowDuration = slideShowDuration_;
 @synthesize timer = timer_;
 @synthesize transitionInnerScrollView = transitionInnerScrollView_;
-@synthesize scaleAspectFillEnabled = scaleAspectFillEnabled_;
 
 #pragma mark -
 #pragma mark private utilities
@@ -93,7 +93,6 @@
 {
 	innerScrollView.zoomScale = 1.0;
 	innerScrollView.contentOffset = CGPointZero;
-    innerScrollView.scaleAspectFillEnabled = self.scaleAspectFillEnabled;
 }
 
 - (void)_setImageAtIndex:(NSInteger)index toScrollView:(FBImageViewerInnerScrollView*)innerScrollView
@@ -205,6 +204,16 @@
 	}
 }
 
+- (void)_setPageControlHidden:(BOOL)hidden
+{
+    CGFloat alpha = hidden ? 0.0 : 1.0;
+    [UIView animateWithDuration:0.2
+                     animations:^{
+                         self.pageControl.alpha = alpha;
+                     }];    
+}
+
+
 #pragma mark -
 #pragma mark -
 - (void)reloadData
@@ -226,6 +235,12 @@
 	
 	self.pageControl.numberOfPages = numberOfViews;
 	self.pageControl.currentPage = self.currentImageIndex;
+    
+    if (numberOfViews <= 1) {
+        [self _setPageControlHidden:YES];
+    } else {
+        [self _setPageControlHidden:self.pageControlHidden];
+    }
 }
 
 
@@ -236,10 +251,10 @@
 {	
 	// initialize vars
 	self.viewSpacing = CGSizeMake(
-								  DEFAULT_SPACING_WIDTH, DEFAULT_SPACING_HEIGHT);
+								  FB_IMAGE_VIEWER_VIEW_DEFAULT_SPACING_WIDTH, FB_IMAGE_VIEWER_VIEW_DEFAULT_SPACING_HEIGHT);
 	self.showcaseMargin = CGSizeMake(
-									 (int)(self.bounds.size.width * DEFAULT_MARGIN_WIDTH_RATE),
-									 DEFAULT_MARGIN_HEIGHT);
+									 (int)(self.bounds.size.width * FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_WIDTH_RATE),
+									 FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_HEIGHT);
 	[self _setupSpacingAndMarginAndClips];
 	
 	// setup self view
@@ -252,7 +267,6 @@
 		UIViewAutoresizingFlexibleHeight      |
 		UIViewAutoresizingFlexibleBottomMargin;
 	self.clipsToBounds = YES;
-	self.backgroundColor = [UIColor blackColor];	// default
 	
 	
 	// setup base scroll view
@@ -303,8 +317,7 @@
 	[self.scrollView addSubview:self.transitionInnerScrollView];
 
 	// setup page control
-	CGRect pageControlFrame = CGRectMake(0, self.bounds.size.height-DEFAULT_MARGIN_HEIGHT, self.bounds.size.width, DEFAULT_MARGIN_HEIGHT);
-	self.pageControl = [[[UIPageControl alloc] initWithFrame:pageControlFrame] autorelease];
+	self.pageControl = [[[UIPageControl alloc] initWithFrame:CGRectZero] autorelease];
 	self.pageControl.autoresizingMask =
 		UIViewAutoresizingFlexibleLeftMargin  |
 		UIViewAutoresizingFlexibleWidth       |
@@ -316,8 +329,10 @@
 	[self.pageControl addTarget:self
 						 action:@selector(pageControlDidChange:)
 			   forControlEvents:UIControlEventValueChanged];
-	self.pageControl.hidden = !pageControlEnabled_;
 	[self addSubview:self.pageControl];
+    
+    // re-layout
+    self.pageControlPosition = pageControlPosition_;
 }	
 
 - (void)_layoutSubviewsWithSizeChecking:(BOOL)checking animated:(BOOL)animated
@@ -429,13 +444,13 @@
 							  self.contentOffsetIndex*newSizeWithSpace.width, 0)
 							 animated:animated];
 
-	/* DEBUG
+    /*
 	 NSLog(@"oldSize         : %@", NSStringFromCGSize(oldSize));
 	 NSLog(@"newSize         : %@", NSStringFromCGSize(newSize));
 	 NSLog(@"scrollView.frame: %@", NSStringFromCGRect(self.scrollView.frame));
 	 NSLog(@"newSizeWithSpace:%@", NSStringFromCGSize(newSizeWithSpace));
-	 NSLog(@"scrollView.contentOffset: %@", NSStringFromCGPoint(self.scrollView.contentOffset))	 */
-;
+    NSLog(@"scrollView.contentOffset: %@", NSStringFromCGPoint(self.scrollView.contentOffset));
+     */
 }
 
 - (void)layoutSubviews
@@ -448,11 +463,14 @@
 #pragma mark Initialization and deallocation
 - (void)setup
 {
-	pageControlEnabled_ = NO;
+	pageControlHidden_ = YES;
 	showcaseModeEnabled_ = NO;
 	
 	isRunningSlideShow_ = NO;
-	slideShowDuration_ = DEFAULT_SLIDESHOW_DURATION;    
+	slideShowDuration_ = FB_IMAGE_VIEWER_VIEW_DEFAULT_SLIDESHOW_DURATION;
+    
+    self.backgroundColor = [UIColor blackColor];
+    pageControlPosition_ = FBImageViewerViewPageControllerPositionBottom;
 }
 
 - (id)initWithCoder:(NSCoder *)aDecoder
@@ -563,7 +581,9 @@
 			[self setShowcaseModeEnabled:showcaseModeEnabledBeforeSlideshow_];
 		}
 		
-		[self.delegate imageViewerDidStopSlideShow:self];
+        if ([self.delegate respondsToSelector:@selector(imageViewerViewDidStopSlideShow:)]) {
+            [self.delegate imageViewerViewDidStopSlideShow:self];
+        }
 	} else {
 		// nothing
 	}
@@ -598,7 +618,7 @@
 	
 	// [2] do transition
 	CATransition* transition = [CATransition animation];
-	transition.duration = DEFAULT_TRANSITION_DURATION;
+	transition.duration = FB_IMAGE_VIEWER_VIEW_DEFAULT_TRANSITION_DURATION;
 	transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
 	transition.type = kCATransitionFade;
 	transition.delegate = self;
@@ -640,7 +660,9 @@
 #pragma mark Delegate methods for CAAnimation
 - (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag
 {
-//	NSLog(@"animationDidStop:finished:");
+    if ([self.delegate respondsToSelector:@selector(imageViewerView:didMoveToIndex:)]) {
+        [self.delegate imageViewerView:self didMoveToIndex:self.currentImageIndex];
+    }
 }
 
 
@@ -657,14 +679,10 @@
 	FBImageViewerInnerScrollView* currentScrollView = 
         [self.innerScrollViews objectAtIndex:kIndexOfCurrentScrollView];
     
-    if (self.scaleAspectFillEnabled) {
-        currentScrollView.scaleAspectFillEnabled = !currentScrollView.scaleAspectFillEnabled;
+    if (currentScrollView.zoomScale == 1.0) {
+        [currentScrollView setZoomScale:2.0 animated:YES];
     } else {
-        if (currentScrollView.zoomScale == 1.0) {
-            [currentScrollView setZoomScale:1.5 animated:YES];
-        } else {
-            [currentScrollView setZoomScale:1.0 animated:YES];        
-        }
+        [currentScrollView setZoomScale:1.0 animated:YES];        
     }
 }
 
@@ -697,6 +715,11 @@
 		[self _resetZoomScrollView:currentScrollView];
 		
 		//		NSLog(@"%f (%d=>%d)", delta, self.currentImageIndex, index);
+        
+        
+        if ([self.delegate respondsToSelector:@selector(imageViewerView:willMoveFromIndex:)]) {
+            [self.delegate imageViewerView:self willMoveFromIndex:self.currentImageIndex];
+        }
 
 		if (delta > 0) {
 			// the current page moved to right
@@ -752,7 +775,6 @@
 }
 
 
-
 #pragma mark -
 #pragma mark public methods
 - (void)setDataSource:(id <FBImageViewerViewDataSource>)dataSource
@@ -761,14 +783,22 @@
 	[self reloadData];
 }
 
-- (void)setPageControlEnabled:(BOOL)enabled
+- (void)setPageControlHidden:(BOOL)hidden
 {
-	pageControlEnabled_ = enabled;
-	self.pageControl.hidden = !enabled;
+	pageControlHidden_ = hidden;
+    if ([self _numberOfImages] <= 1) {
+        [self _setPageControlHidden:YES];
+    } else {
+        [self _setPageControlHidden:hidden];
+    }
 }
 
-- (void)setCurrentPage:(NSInteger)page animated:(BOOL)animated
+- (void)setCurrentIndex:(NSInteger)page animated:(BOOL)animated
 {
+    if ([self _numberOfImages] == 0) {
+        return;
+    }
+
 	NSInteger numberOfViews = [self _numberOfImages];
 
 	if (page < 0) {
@@ -796,16 +826,6 @@
 
 }
 
-- (void)setCurrentIndex:(NSInteger)page
-{
-	[self setCurrentPage:page animated:YES];
-}
-
-- (NSInteger)currentIndex
-{
-	return currentImageIndex_;
-}
-
 - (void)_movePage:(BOOL)animated
 {
 	passDidScroll_ = YES;
@@ -815,7 +835,7 @@
 							 animated:animated];
 }
 
-- (void)moveToPreviousPageAnimated:(BOOL)animated
+- (void)moveToPreviousIndexAnimated:(BOOL)animated
 {
 	if (scrollingAnimation_ || self.currentIndex <= 0) {
 		// do nothing
@@ -829,7 +849,7 @@
 	[self _movePage:animated];
 }
 
-- (void)moveToNextPageAnimated:(BOOL)animated
+- (void)moveToNextIndexAnimated:(BOOL)animated
 {
 	if (scrollingAnimation_ || self.currentIndex >= [self _numberOfImages]-1) {
 		// do nothing
@@ -843,14 +863,14 @@
 	[self _movePage:animated];
 }
 
-- (void)moveToFirstPageAnimated:(BOOL)animated
+- (void)moveToFirstIndexAnimated:(BOOL)animated
 {
-    [self setCurrentPage:0 animated:animated];
+    [self setCurrentIndex:0 animated:animated];
 }
 
-- (void)moveToLastPageAnimated:(BOOL)animated
+- (void)moveToLastIndexAnimated:(BOOL)animated
 {
-    [self setCurrentPage:[self _numberOfImages]-1 animated:animated];    
+    [self setCurrentIndex:[self _numberOfImages]-1 animated:animated];    
 }
 
 //- (void)removeCurrentPage1
@@ -859,7 +879,7 @@
 //	[self _layoutSubviewsWithSizeChecking:NO animated:NO];
 //}
 
-- (void)removeCurrentPage
+- (void)removeCurrentIndexAimated:(BOOL)animated
 {
 	NSInteger numberOfImages = [self _numberOfImages];
 	CGFloat directionFactor = 1.0;
@@ -902,24 +922,28 @@
 		nextInnerScrollView.frame = frame;
 
 		// [2-2] do animation
-		[UIView beginAnimations:nil context:nil];
-		frame = currentInnerScrollView.frame;
-		frame.origin.x -= dw;
-		currentInnerScrollView.frame = frame;
-		frame = nextInnerScrollView.frame;
-		frame.origin.x -= dw;
-		nextInnerScrollView.frame = frame;
-//		self.transitionInnerScrollView.hidden = YES;
-		[UIView commitAnimations];
-
+        if (animated) {
+            [UIView beginAnimations:nil context:nil];
+            frame = currentInnerScrollView.frame;
+            frame.origin.x -= dw;
+            currentInnerScrollView.frame = frame;
+            frame = nextInnerScrollView.frame;
+            frame.origin.x -= dw;
+            nextInnerScrollView.frame = frame;
+    //		self.transitionInnerScrollView.hidden = YES;
+            [UIView commitAnimations];
+        }
 	} else {
-		CATransition* transition = [CATransition animation];
-		transition.duration = DEFAULT_TRANSITION_DURATION;
-		transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-			transition.type = kCATransitionFade;
-//		transition.delegate = self;
-		
-		[self.scrollView.layer addAnimation:transition forKey:nil];
+        if (animated) {
+            CATransition* transition = [CATransition animation];
+            transition.duration = FB_IMAGE_VIEWER_VIEW_DEFAULT_TRANSITION_DURATION;
+            transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+                transition.type = kCATransitionFade;
+    //		transition.delegate = self;
+            
+            [self.scrollView.layer addAnimation:transition forKey:nil];
+        }
+
 		currentInnerScrollView.hidden = YES;
 		self.transitionInnerScrollView.hidden = NO;
 
@@ -930,6 +954,52 @@
 	
 	// [3] re-layout subviews
 	[self _layoutSubviewsWithSizeChecking:NO animated:NO];
+    
+    // [4] notify
+    if (numberOfImages &&
+        [self.delegate respondsToSelector:@selector(imageViewerView:didMoveToIndex:)]) {
+        [self.delegate imageViewerView:self didMoveToIndex:self.currentImageIndex];
+    }
+}
+
+
+#pragma mark -
+#pragma mark Properties
+- (void)setCurrentIndex:(NSInteger)page
+{
+	[self setCurrentIndex:page animated:YES];
+}
+
+- (NSInteger)currentIndex
+{
+	return currentImageIndex_;
+}
+
+- (void)setCurrentImageIndex:(NSInteger)currentImageIndex
+{
+    currentImageIndex_ = currentImageIndex;
+    if ([self.delegate respondsToSelector:@selector(imageViewerView:didMoveToIndex:)]) {
+        [self.delegate imageViewerView:self didMoveToIndex:currentImageIndex_];
+    }
+}
+
+
+
+- (void)setPageControlPosition:(FBImageViewerViewPageControllerPosition)pageControlPosition
+{
+    pageControlPosition_ = pageControlPosition;
+    CGFloat y;
+    switch (pageControlPosition_) {
+        case FBImageViewerViewPageControllerPositionTop:
+            y = 0;
+            break;
+            
+        case FBImageViewerViewPageControllerPositionBottom:
+        default:
+            y = self.bounds.size.height-FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_HEIGHT;
+            break;
+    }
+	self.pageControl.frame = CGRectMake(0, y, self.bounds.size.width, FB_IMAGE_VIEWER_VIEW_DEFAULT_MARGIN_HEIGHT);
 }
 
 @end

@@ -28,48 +28,37 @@
 @class FBImageViewerView;
 @protocol FBImageViewerViewDataSource
 
--(NSInteger)numberOfImagesInImageViewerView:(FBImageViewerView*)imageViewerView;
--(UIImage*)imageViewerView:(FBImageViewerView*)imageViewerView imageAtIndex:(NSUInteger)index;
+- (NSInteger)numberOfImagesInImageViewerView:(FBImageViewerView*)imageViewerView;
+- (UIImage*)imageViewerView:(FBImageViewerView*)imageViewerView imageAtIndex:(NSUInteger)index;
 
 @end
 
-@protocol FBImageViewerViewDelegate
-
--(void)imageViewerDidStopSlideShow:(FBImageViewerView*)imageViewerView;
+@protocol FBImageViewerViewDelegate <NSObject>
+@optional
+- (void)imageViewerView:(FBImageViewerView*)imageViwerView willMoveFromIndex:(NSUInteger)index;
+- (void)imageViewerView:(FBImageViewerView*)imageViwerView didMoveToIndex:(NSUInteger)index;
+- (void)imageViewerViewDidStopSlideShow:(FBImageViewerView*)imageViewerView;
 
 @end
+
+
+typedef enum {
+    FBImageViewerViewPageControllerPositionTop = 0,
+    FBImageViewerViewPageControllerPositionBottom,
+} FBImageViewerViewPageControllerPosition;
 
 
 @class FBImageViewerInnerScrollView;
 @interface FBImageViewerView : UIView <UIScrollViewDelegate, FBImageViewerInnerScrollViewDelegate> {
-
-	NSInteger currentImageIndex_;
-	
-	UIScrollView* scrollView_;
-	NSInteger contentOffsetIndex_;
-	
-	NSMutableArray* innerScrollViews_;
-	
 	CGSize previousScrollSize_;
 	
-	
-	id <FBImageViewerViewDataSource> dataSource_;
-	id <FBImageViewerViewDelegate> delegate_;
-	
-
 	BOOL showcaseModeEnabled_;
 	BOOL showcaseModeEnabledBeforeSlideshow_;
 	
-	CGSize showcaseMargin_;
-	CGSize viewSpacing_;
-
 	CGSize spacing_;
 	CGSize margin_;
 	
 	BOOL didSetup_;
-	
-	BOOL pageControlEnabled_;
-	UIPageControl* pageControl_;
 	
 	// slide show status
 	BOOL isRunningSlideShow_;
@@ -80,28 +69,27 @@
 	BOOL passDidScroll_;
 	BOOL scrollingAnimation_;
 	
-    BOOL scaleAspectFillEnabled_;
 }
 
 // public properties
 @property (nonatomic, assign) IBOutlet id <FBImageViewerViewDelegate> delegate;
 @property (nonatomic, assign) IBOutlet id <FBImageViewerViewDataSource> dataSource;
 @property (nonatomic, assign) BOOL showcaseModeEnabled;
-@property (nonatomic, assign) BOOL pageControlEnabled;
+@property (nonatomic, assign) BOOL pageControlHidden;
+@property (nonatomic, assign) FBImageViewerViewPageControllerPosition pageControlPosition;
 @property (nonatomic, assign) BOOL isRunningSlideShow;
 @property (nonatomic, assign) NSTimeInterval slideShowDuration;
 @property (nonatomic, assign) NSInteger currentIndex;	// start with 0
-@property (nonatomic, assign) BOOL scaleAspectFillEnabled;
 
 // public methods
 - (void)reloadData;
 - (void)startSlideShow;
 - (void)stopSlideShow;
-- (void)setCurrentPage:(NSInteger)page animated:(BOOL)animated;
-- (void)moveToPreviousPageAnimated:(BOOL)animated;
-- (void)moveToNextPageAnimated:(BOOL)animated;
-- (void)moveToFirstPageAnimated:(BOOL)animated;
-- (void)moveToLastPageAnimated:(BOOL)animated;
-- (void)removeCurrentPage;
+- (void)setCurrentIndex:(NSInteger)page animated:(BOOL)animated;
+- (void)moveToPreviousIndexAnimated:(BOOL)animated;
+- (void)moveToNextIndexAnimated:(BOOL)animated;
+- (void)moveToFirstIndexAnimated:(BOOL)animated;
+- (void)moveToLastIndexAnimated:(BOOL)animated;
+- (void)removeCurrentIndexAimated:(BOOL)animated;
 
 @end

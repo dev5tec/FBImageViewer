@@ -63,7 +63,7 @@ enum {
 
 #pragma mark -
 #pragma mark FBImageViewerViewDelegate
--(void)imageViewerDidStopSlideShow:(FBImageViewerView*)imageViewerView
+-(void)imageViewerViewDidStopSlideShow:(FBImageViewerView*)imageViewerView
 {
 	NSLog(@"didStopSlideShow:");
 }
@@ -102,12 +102,12 @@ enum {
 
 - (IBAction)movePrevious:(id)sender
 {
-	[self.galleryView moveToPreviousPageAnimated:YES];
+	[self.galleryView moveToPreviousIndexAnimated:YES];
 }
 
 - (IBAction)moveNext:(id)sender
 {
-	[self.galleryView moveToNextPageAnimated:YES];
+	[self.galleryView moveToNextIndexAnimated:YES];
 }
 
 @end
