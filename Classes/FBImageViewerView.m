@@ -34,7 +34,7 @@
 #define FB_IMAGE_VIEWER_VIEW_DEFAULT_SLIDESHOW_DURATION 3
 #define FB_IMAGE_VIEWER_VIEW_DEFAULT_TRANSITION_DURATION	0.75
 
-#define kMaxOfScrollView			5
+#define kMaxOfScrollView			3
 #define kLengthFromCetner			((kMaxOfScrollView-1)/2)
 #define kIndexOfCurrentScrollView	((kMaxOfScrollView-1)/2)
 
