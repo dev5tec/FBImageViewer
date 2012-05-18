@@ -102,8 +102,13 @@
 		return;
 	}
 	
-	innerScrollView.imageView.image =
-        [self.dataSource imageViewerView:self imageAtIndex:index];
+    UIImage* image = [self.dataSource imageViewerView:self imageAtIndex:index];
+	innerScrollView.imageView.image = image;
+    if (image.size.width < image.size.height) {
+        innerScrollView.imageView.contentMode = UIViewContentModeScaleAspectFill;
+    } else {
+        innerScrollView.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    }
 	
 	[self _resetZoomScrollView:innerScrollView];
 }
@@ -490,12 +495,13 @@
 
 
 - (void)dealloc {
+//    NSLog(@"%s|%@", __PRETTY_FUNCTION__, nil);
 	self.scrollView = nil;
 	self.innerScrollViews = nil;
 	self.pageControl = nil;
 	self.timer = nil;
 	self.transitionInnerScrollView = nil;
-	
+
     [super dealloc];
 }
 

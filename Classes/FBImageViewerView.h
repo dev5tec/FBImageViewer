@@ -26,7 +26,7 @@
 #import "FBImageViewerInnerScrollView.h"
 
 @class FBImageViewerView;
-@protocol FBImageViewerViewDataSource
+@protocol FBImageViewerViewDataSource <NSObject>
 
 - (NSInteger)numberOfImagesInImageViewerView:(FBImageViewerView*)imageViewerView;
 - (UIImage*)imageViewerView:(FBImageViewerView*)imageViewerView imageAtIndex:(NSUInteger)index;
